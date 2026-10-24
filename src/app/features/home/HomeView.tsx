@@ -6,7 +6,7 @@ import { APP_SETTINGS_KEYS, readSetting } from '../../settings'
 import { dailyAyahDateKey, dailyAyahFor, dailyAyahIndex } from '../../../daily-ayahs'
 import { timeBasedAzkar } from '../azkar/azkarProgress'
 
-const HOME_HERO_IMAGE = 'https://assets.macaly-user-data.dev/cdn-cgi/image/format=webp,width=2000,height=2000,fit=scale-down,quality=85,anim=false/ggd0w45kqitomgzmp851kynr/hep5hp2bq6qerrvl27y8ffds/3RINLUqJ6FhdnZYAAfwdn/home-mosque-hero-cbsFolhE.jpg'
+const HOME_HERO_IMAGE = '/img/home-mosque-hero.jpg'
 
 export type HomeViewProps = {
   dayTotal: number
@@ -220,7 +220,7 @@ export function HomeView({
         <section className="home-reference-prayer -mt-1 mb-3 overflow-hidden rounded-[1.45rem] border border-white/20 bg-[#062f2a]/95 text-white shadow-2xl backdrop-blur-md" data-reveal>
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
             <div className="flex items-center gap-2">
-              <span className="home-reference-prayer-mark flex h-8 w-8 items-center justify-center rounded-full bg-[#e9c875]/10"><img className="h-6 w-6 object-contain opacity-90" src="https://assets.macaly-user-data.dev/ggd0w45kqitomgzmp851kynr/hep5hp2bq6qerrvl27y8ffds/1RGqeDcjwVS1nTgTa35c_/mosque-prayer-times-icon-MeeIawvi.png" alt="" aria-hidden="true" /></span>
+              <span className="home-reference-prayer-mark flex h-8 w-8 items-center justify-center rounded-full bg-[#e9c875]/10"><img className="h-6 w-6 object-contain opacity-90" src="/img/mosque-prayer-times-icon.png" alt="" aria-hidden="true" /></span>
               <h2 className="font-amiri text-[20px] font-bold">مواقيت الصلاة</h2>
             </div>
           </div>

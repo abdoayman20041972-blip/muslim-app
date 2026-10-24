@@ -5,6 +5,7 @@ import { APP_SETTINGS_KEYS, readSetting, writeSetting } from '../../../settings'
 import { Toggle } from '../../../components/app-chrome'
 import { Row, Section, Choice } from '../settingsPrimitives'
 import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { readAdhanSoundMode } from '../../notifications/nativeNotifications'
 import { usePushSubscription } from '../../notifications/pushSubscription'
 
@@ -44,6 +45,23 @@ export function NotificationsSection({
   const { subscribe, getStatus, hasBrowserSubscription, unsubscribe } = usePushSubscription()
   const [pushState,setPushState] = useState<'idle'|'loading'|'enabled'|'disabled'|'denied'|'error'>('idle')
   const [adhanSound,setAdhanSound] = useState(readAdhanSoundMode)
+  const native = Capacitor.isNativePlatform()
+  const [nativeStatus,setNativeStatus] = useState('')
+
+  const askNative = async () => {
+    try {
+      const res = await LocalNotifications.requestPermissions()
+      setNativeStatus(res.display)
+      window.dispatchEvent(new Event('azkar-settings-changed'))
+    } catch {
+      setNativeStatus('denied')
+    }
+  }
+
+  useEffect(() => {
+    if (!native) return
+    void LocalNotifications.checkPermissions().then(s => setNativeStatus(s.display)).catch(() => {})
+  }, [native])
 
   useEffect(() => {
     let cancelled = false
@@ -71,11 +89,12 @@ export function NotificationsSection({
   }
   return (
     <Section title="مركز الإشعارات">
-      <Row title="السماح بالإشعارات">
-        <button onClick={() => void notify()} className="rounded-xl bg-azkar-teal px-3 py-2 text-[10px] font-bold text-azkar-card">
-          {notificationStatus === 'granted' ? 'مسموحة' : 'السماح'}
+      <Row title="السماح بالإشعارات" description={native ? 'تصل الإشعارات داخل التطبيق حتى بعد إغلاقه.' : undefined}>
+        <button onClick={() => void (native ? askNative() : notify())} className="rounded-xl bg-azkar-teal px-3 py-2 text-[10px] font-bold text-azkar-card">
+          {(native ? nativeStatus : notificationStatus) === 'granted' ? 'مسموحة' : 'السماح'}
         </button>
       </Row>
+      {!native && (
       <Row title="الإشعارات الخلفية (تعمل حتى بعد إغلاق التطبيق)">
         <div className="flex flex-col items-end gap-1">
           <button onClick={() => void (pushState === 'enabled' ? disablePush() : enablePush())} disabled={pushState === 'loading'} className="rounded-xl bg-azkar-teal px-3 py-2 text-[10px] font-bold text-azkar-card disabled:opacity-60">
@@ -85,6 +104,7 @@ export function NotificationsSection({
           {pushState === 'error' && <span className="text-[9px] text-red-600">{PUSH_ERROR_MESSAGES.error}</span>}
         </div>
       </Row>
+      )}
       <Row title="تذكير الصلاة" description="إشعار مستقل عند دخول وقت الصلاة.">
         <Toggle checked={prayerTime} onChange={() => void toggleNotify(APP_SETTINGS_KEYS.prayerTime,setPrayerTime,prayerTime)} label="تذكير الصلاة"/>
       </Row>

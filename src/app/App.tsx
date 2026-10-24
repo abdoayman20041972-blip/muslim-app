@@ -70,7 +70,8 @@ import { useWakeLockSetting } from "./features/settings/useWakeLockSetting";
 import { useAppearanceMode } from "./features/settings/useAppearanceMode";
 import { useUiScaleSync } from "./features/settings/useUiScaleSync";
 import { usePrayerReminders } from "./features/notifications/usePrayerReminders";
-import { scheduleNativePrayerNotifications } from "./features/notifications/nativeNotifications";
+import { scheduleNativeNotifications } from "./features/notifications/nativeNotifications";
+import { NativeOnboarding } from "./features/permissions/NativeOnboarding";
 import { useIslamicNotifications } from "./features/notifications/useIslamicNotifications";
 import { usePushSubscription } from "./features/notifications/pushSubscription";
 import { useAppSounds } from "./features/sound/useAppSounds";
@@ -197,7 +198,7 @@ export function App() {
   usePrayerReminders();
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const refresh = () => void scheduleNativePrayerNotifications();
+    const refresh = () => void scheduleNativeNotifications();
     refresh();
     const id = window.setInterval(refresh, 60 * 60 * 1000); // re-schedule next day
     window.addEventListener("azkar-settings-changed", refresh);
@@ -240,6 +241,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return; // Web Push cannot work inside the APK; native notifications handle delivery
     let syncing = false;
     const sync = () => {
       if (syncing) return;
@@ -425,6 +427,7 @@ export function App() {
         }}
       >
         {booting && <Splash exiting={splashExiting} />}
+        {!booting && <NativeOnboarding />}
         <Suspense fallback={<AppLoadingFallback />}>
           <AppContent
             view={view}

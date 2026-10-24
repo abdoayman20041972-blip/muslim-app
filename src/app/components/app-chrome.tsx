@@ -50,7 +50,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
     </button>
   );
 }
-const SPLASH_MOSQUE_IMAGE_URL = "https://assets.macaly-user-data.dev/ggd0w45kqitomgzmp851kynr/hep5hp2bq6qerrvl27y8ffds/_ZaZF1H2Fs4HNsqc-CYIb/muslim-splash-mosque-F-wPcbxH.jpg";
+const SPLASH_MOSQUE_IMAGE_URL = "/img/muslim-splash-mosque.jpg";
 
 export function Splash({ exiting = false }: { exiting?: boolean }) {
   const [imageFailed, setImageFailed] = useState(false);

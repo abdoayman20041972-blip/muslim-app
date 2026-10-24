@@ -101,7 +101,7 @@ export function TasbihView({
       <div dir="rtl" className="tasbih-redesign tasbih-minimal animate-in fade-in slide-in-from-bottom-2 duration-300">
         <img
           className="tasbih-background-photo"
-          src="https://assets.macaly-user-data.dev/ggd0w45kqitomgzmp851kynr/hep5hp2bq6qerrvl27y8ffds/FQZeIKDn3cf4s7COrTgoK/tasbih-mosque-background-final-EJuRF0PS.jpg"
+          src="/img/tasbih-mosque-background.jpg"
           alt=""
           aria-hidden="true"
           loading="eager"

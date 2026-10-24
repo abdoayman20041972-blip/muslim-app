@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { surahList } from '../../../quran-meta'
 import { quranAudioUrl, quranSurahAudioUrl, type Ayah, type View } from '../../constants'
 import { APP_SETTINGS_KEYS, readSetting } from '../../settings'
@@ -58,6 +59,14 @@ export function QuranAudioProvider({ children, setView }: Props) {
   const reciterSwitchRef = useRef(0)
   const sessionRef = useRef<{ list: Ayah[]; index: number; reciter: QuranAudioReciter; surah: number; bismillah: boolean } | null>(null)
 
+  const stopBackgroundAudio = useCallback(async () => {
+    if (!Capacitor.isNativePlatform()) return
+    try {
+      const { BackgroundAudio } = await import('@muslim/background-audio')
+      await BackgroundAudio.stop()
+    } catch {}
+  }, [])
+
   const stop = useCallback(() => {
     cleanup.current?.()
     cleanup.current = null
@@ -71,7 +80,8 @@ export function QuranAudioProvider({ children, setView }: Props) {
     setCurrent(null)
     setCurrentSurah(null)
     setPlayback(null)
-  }, [])
+    void stopBackgroundAudio()
+  }, [stopBackgroundAudio])
 
   const updateMediaSession = useCallback((surahNumber: number, selectedReciter: QuranAudioReciter, ayahNumber?: number) => {
     if (!('mediaSession' in navigator)) return
@@ -200,6 +210,22 @@ export function QuranAudioProvider({ children, setView }: Props) {
   }, [playConnected, playing])
 
   useEffect(() => { repeatRef.current = repeat }, [repeat])
+
+  // Inside the Android shell, keep a native foreground MediaSession service
+  // alive while recitation plays, so the audio survives backgrounding.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    if (playing) {
+      void (async () => {
+        try {
+          const { BackgroundAudio } = await import('@muslim/background-audio')
+          await BackgroundAudio.start({ title: 'تلاوة القرآن', artist: QURAN_AUDIO_RECITER_LABELS[reciter] || reciter })
+        } catch {}
+      })()
+    } else {
+      void stopBackgroundAudio()
+    }
+  }, [playing, reciter, stopBackgroundAudio])
 
   const selectAyah = useCallback((ayahNumber: number, surahNumber: number) => { setCurrent(ayahNumber); setCurrentSurah(surahNumber) }, [])
   const setReciter = useCallback(async (next: QuranAudioReciter) => {

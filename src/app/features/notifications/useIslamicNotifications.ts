@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { getNotificationPermission, showAppNotification } from './notifications'
 import { APP_SETTINGS_KEYS, readSetting } from '../../settings'
 import { dailyAyahFor } from '../../../daily-ayahs'
@@ -15,6 +16,7 @@ export function useIslamicNotifications() {
   const runId = useRef(0)
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return // native local notifications handle everything
     let cancelled = false
     const clear = () => {
       timers.current.forEach(id => window.clearTimeout(id))

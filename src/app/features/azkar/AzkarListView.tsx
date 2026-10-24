@@ -34,8 +34,8 @@ function HistoryIcon() {
   return <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.2" stroke="currentColor" strokeWidth="1.6"/><path d="M9 8h6M9 12h6M9 16h3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
 }
 
-const MORNING_IMAGE = 'https://assets.macaly-user-data.dev/ggd0w45kqitomgzmp851kynr/hep5hp2bq6qerrvl27y8ffds/6RgMQARyEDgpcrYqzaP8z/azkar-morning-wide-mosque-vYbICNgT.jpg'
-const EVENING_IMAGE = 'https://assets.macaly-user-data.dev/ggd0w45kqitomgzmp851kynr/hep5hp2bq6qerrvl27y8ffds/fXr5aRRJDQar1HZPxPR-Z/azkar-evening-wide-sunset-mosque-hR6g3JGH.jpg'
+const MORNING_IMAGE = '/img/azkar-morning-wide-mosque.jpg'
+const EVENING_IMAGE = '/img/azkar-evening-wide-sunset-mosque.jpg'
 
 function PrimaryIllustration({ tone }: { tone: 'morning' | 'evening' }) {
   return <img src={tone === 'morning' ? MORNING_IMAGE : EVENING_IMAGE} alt="" className="azkar-primary-illustration" aria-hidden="true" loading="eager" decoding="async" />

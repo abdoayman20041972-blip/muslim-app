@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { useConvex } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import { APP_SETTINGS_KEYS, readSetting } from '../../settings'
@@ -159,6 +160,7 @@ export function usePushSubscription() {
   }
 
   const sync = async (): Promise<boolean> => {
+    if (Capacitor.isNativePlatform()) return false // Web Push cannot work inside the APK WebView
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       return false
     }
@@ -173,6 +175,7 @@ export function usePushSubscription() {
   }
 
   const subscribe = async (): Promise<PushSubscribeResult> => {
+    if (Capacitor.isNativePlatform()) return { ok: false, reason: 'unsupported' } // native notifications handle delivery
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       return { ok: false, reason: 'unsupported' }
     }

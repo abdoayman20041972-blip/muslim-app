@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { Row, Section } from '../settingsPrimitives'
 
 export function AboutSection() {
@@ -7,7 +8,7 @@ export function AboutSection() {
     <b className="font-amiri text-azkar-teal-deep">مسلم</b>
   </Row>
   <Row title="الإصدار">
-    <span className="text-[10px]">Web / PWA</span>
+    <span className="text-[10px]">{Capacitor.isNativePlatform() ? 'أندرويد 1.1.0' : 'Web / PWA'}</span>
   </Row>
   <Row title="التواصل والملاحظات" last>
     <a
