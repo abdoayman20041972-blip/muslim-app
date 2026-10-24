@@ -136,7 +136,7 @@ export function AzkarListView({ categories, source: _source, favoritesCount, onB
           </button>
         </header>
 
-        <div className={searchOpen ? 'relative mt-4 px-2 animate-in fade-in slide-in-from-top-1 duration-200' : 'sr-only'}>
+        {searchOpen && (
           <div className="relative mt-4 px-2 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="rounded-2xl border border-azkar-gold-soft bg-azkar-card/95 p-2 shadow-lg backdrop-blur">
               <input
@@ -161,7 +161,7 @@ export function AzkarListView({ categories, source: _source, favoritesCount, onB
               )}
             </div>
           </div>
-        </div>
+        )}
 
         <section className="azkar-daily-card relative mt-5 mx-1 overflow-hidden rounded-[1.45rem] border p-4" aria-label="ملخص اليوم">
           <div className="flex items-center gap-4">
