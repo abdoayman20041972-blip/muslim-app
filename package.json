@@ -14,6 +14,7 @@
   "dependencies": {
     "@capacitor/android": "^7.6.9",
     "@capacitor/app": "^7.1.2",
+    "@capacitor/splash-screen": "^7.0.5",
     "@macaly/bridge": "^0.1.5",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-devtools": "^0.10.0",
