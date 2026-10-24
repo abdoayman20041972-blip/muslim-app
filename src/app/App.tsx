@@ -243,11 +243,6 @@ export function App() {
         // Native bridge unavailable; fall back to plain app launch.
       }
     })()
-    return () => {
-      cancelled = true
-      removeTapListener()
-    }
-  }, [])
     const onNotificationClick = (event: MessageEvent) => {
       if (event.data?.type !== 'notification-click' || typeof event.data.url !== 'string') return
       const targetUrl = new URL(event.data.url, window.location.origin)
@@ -255,7 +250,11 @@ export function App() {
       if (target) setView(target)
     }
     navigator.serviceWorker?.addEventListener('message', onNotificationClick)
-    return () => navigator.serviceWorker?.removeEventListener('message', onNotificationClick)
+    return () => {
+      cancelled = true
+      removeTapListener()
+      navigator.serviceWorker?.removeEventListener('message', onNotificationClick)
+    }
   }, [])
 
   useEffect(() => {
