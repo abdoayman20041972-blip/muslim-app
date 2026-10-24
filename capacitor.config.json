@@ -1,0 +1,8 @@
+{
+  "appId": "com.muslim.zikrapp",
+  "appName": "مسلم",
+  "webDir": ".output/public",
+  "server": {
+    "androidScheme": "https"
+  }
+}
