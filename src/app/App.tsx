@@ -154,6 +154,18 @@ export function App() {
     };
   }, []);
   const [mounted, setMounted] = useState(false);
+  // Keep the native Android launch screen (dark green splash) visible until
+  // the in-app splash finishes, so tapping the icon never shows a white gap.
+  useEffect(() => {
+    if (booting || !Capacitor.isNativePlatform()) return;
+    void import("@capacitor/splash-screen")
+      .then(({ SplashScreen }) =>
+        SplashScreen.hide({ fadeOutDuration: 250 }),
+      )
+      .catch(() => {
+        // Plugin bridge unavailable; the OS default behavior applies.
+      });
+  }, [booting]);
   const [surahSearch, setSurahSearch] = useState("");
   const [, setSettingsVersion] = useState(0);
   const [lastSurah, setLastSurah] = useState<number | null>(null);
@@ -340,6 +352,12 @@ export function App() {
       }
     };
     const cancelPrefetch = idle(() => {
+      // In the native shell the chunks are local files, so prefetching is
+      // always safe and makes first navigation instant.
+      if (Capacitor.isNativePlatform()) {
+        if (!cancelled) void prefetchScreens();
+        return;
+      }
       void waitForServiceWorkerControl().then((controlled) => {
         if (!cancelled && controlled) void prefetchScreens();
       });
