@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import {
   FONT_ORDER,
   FONT_SIZES,
@@ -7,6 +8,24 @@ import {
   toArabicNumber,
 } from '../../constants'
 import { getNotificationPermission, requestNotificationPermission } from '../notifications/notifications'
+import { readPrayerCoords } from '../prayer/prayerTimes'
+import { getDownloadStatus } from '../quran/offlineDownload'
+import type { QuranAudioReciter } from '../quran/quranAudioPlayback'
+import {
+  BellRing,
+  BookOpen,
+  CircleDot,
+  Clock3,
+  Info,
+  MapPin,
+  ScrollText,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Headphones,
+} from 'lucide-react'
 import { Toggle } from '../../components/app-chrome'
 import { useConfirmDialog } from '../../components/confirm-dialog'
 import { useQuranPreferences } from '../quran/useQuranPreferences'
@@ -46,6 +65,110 @@ type Category =
   | 'motivation'
   | 'privacy'
   | 'about'
+const CATEGORY_GROUPS: ReadonlyArray<readonly [string, ReadonlyArray<readonly [Category, string, string, typeof Settings2]>]> = [
+  ['المظهر والقراءة', [
+    ['general', 'عام', 'المظهر والأرقام والحركة', Settings2],
+    ['quran', 'المصحف', 'الخط والقارئ والتفسير', BookOpen],
+  ]],
+  ['العبادة والتذكير', [
+    ['prayer', 'الصلاة', 'الحساب والتذكيرات', Clock3],
+    ['notifications', 'الإشعارات', 'الأذان والتنبيهات', BellRing],
+    ['azkar', 'الأذكار', 'التفضيلات والكاش', Sparkles],
+    ['tasbih', 'السبحة', 'الصوت والاهتزاز', CircleDot],
+    ['hadith', 'الأحاديث', 'حجم الخط والملاحظات', ScrollText],
+    ['prophets', 'قصص الأنبياء', 'الخط وأسئلة التأمل', Star],
+  ]],
+  ['الجهاز والبيانات', [
+    ['device', 'الأذونات والجهاز', 'الإشعارات والموقع', ShieldCheck],
+    ['privacy', 'الخصوصية والبيانات', 'النسخ الاحتياطي', Info],
+    ['motivation', 'التحفيز', 'إحصائيات السبحة والختمة', TrendingUp],
+  ]],
+  ['حول مسلم', [
+    ['about', 'حول مسلم', 'معلومات التطبيق والتواصل', Info],
+  ]],
+]
+
+function SettingsStatusCard({ onOpen }: { onOpen: (category: Category) => void }) {
+  const native = Capacitor.isNativePlatform()
+  const [notifLabel, setNotifLabel] = useState('...')
+  const [hasLocation, setHasLocation] = useState(false)
+  const [downloaded, setDownloaded] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      if (native) {
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications')
+          const status = await LocalNotifications.checkPermissions()
+          if (!cancelled) setNotifLabel(status.display === 'granted' ? 'مفعّلة' : 'غير مفعّلة')
+        } catch {
+          if (!cancelled) setNotifLabel('غير مفعّلة')
+        }
+      } else if (typeof Notification !== 'undefined') {
+        setNotifLabel(Notification.permission === 'granted' ? 'مفعّلة' : 'غير مفعّلة')
+      } else {
+        setNotifLabel('غير مفعّلة')
+      }
+      try {
+        const reciter = readSetting(APP_SETTINGS_KEYS.reciter, 'ar.minshawi') as QuranAudioReciter
+        const summary = await getDownloadStatus(reciter)
+        if (!cancelled) setDownloaded(summary.completed.length)
+      } catch {
+        if (!cancelled) setDownloaded(null)
+      }
+    }
+    setHasLocation(Boolean(readPrayerCoords()))
+    void load()
+    const refresh = () => {
+      setHasLocation(Boolean(readPrayerCoords()))
+      void load()
+    }
+    window.addEventListener('azkar-settings-changed', refresh)
+    window.addEventListener('azkar-prayer-settings-changed', refresh)
+    return () => {
+      cancelled = true
+      window.removeEventListener('azkar-settings-changed', refresh)
+      window.removeEventListener('azkar-prayer-settings-changed', refresh)
+    }
+  }, [native])
+
+  const tiles: ReadonlyArray<{ key: string; label: string; value: string; ok: boolean; icon: typeof BellRing; category: Category }> = [
+    { key: 'notif', label: 'الإشعارات', value: notifLabel, ok: notifLabel === 'مفعّلة', icon: BellRing, category: 'notifications' },
+    { key: 'loc', label: 'الموقع', value: hasLocation ? 'محدد' : 'غير محدد', ok: hasLocation, icon: MapPin, category: 'prayer' },
+    {
+      key: 'audio',
+      label: 'التلاوات',
+      value: downloaded === null ? '—' : downloaded + ' سورة',
+      ok: downloaded !== null && downloaded > 0,
+      icon: Headphones,
+      category: 'quran',
+    },
+  ]
+
+  return (
+    <section className="mb-5 overflow-hidden rounded-[var(--r-lg)] border border-azkar-gold-soft bg-azkar-card shadow-sm" aria-label="حالة التطبيق">
+      <div className="grid grid-cols-3 divide-x divide-x-reverse divide-azkar-gold-soft/50">
+        {tiles.map((tile) => (
+          <button
+            key={tile.key}
+            type="button"
+            onClick={() => onOpen(tile.category)}
+            className="u-pressable flex flex-col items-center gap-1 px-2 py-4 text-center"
+            aria-label={tile.label + ': ' + tile.value}
+          >
+            <span className={`flex h-9 w-9 items-center justify-center rounded-full ${tile.ok ? 'bg-azkar-teal-tint text-azkar-teal-deep' : 'bg-azkar-gold-tint text-azkar-ink-soft'}`}>
+              <tile.icon className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <b className="text-[11px] text-azkar-ink">{tile.label}</b>
+            <span className={`text-[9px] font-bold ${tile.ok ? 'text-azkar-teal-deep' : 'text-azkar-ink-soft'}`}>{tile.value}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function SettingsView({ appearance, onAppearance, onBack }: Props) {
   const { confirm, alert } = useConfirmDialog()
   const { fontSize, setFontSize, reciter, setReciter, layout, setLayout } = useQuranPreferences()
@@ -117,6 +240,19 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
     save(k, n ? '1' : '0')
   }
   const notify = async () => {
+    // Inside the APK the web Notification API does not exist; use the native
+    // local-notifications permission instead so feature toggles can be enabled.
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications')
+        const result = await LocalNotifications.requestPermissions()
+        const granted = result.display === 'granted'
+        setNotificationStatus(granted ? 'granted' : 'denied')
+        return granted
+      } catch {
+        return false
+      }
+    }
     const p = await requestNotificationPermission()
     setNotificationStatus(p)
     return p === 'granted'
@@ -228,69 +364,39 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
   const back = () => (category === 'main' ? onBack() : setCategory('main'))
   if (category === 'main')
     return (
-      <div className="animate-in fade-in duration-300">
+      <div className="animate-in fade-in duration-300" dir="rtl">
         <div className="mb-5 flex items-center gap-3">
-          <button onClick={onBack} className="h-10 w-10 rounded-full border bg-azkar-card">
+          <button onClick={onBack} className="h-10 w-10 rounded-full border bg-azkar-card" aria-label="رجوع">
             ‹
           </button>
           <div>
             <div className="font-amiri text-2xl font-bold text-azkar-teal-deep">الإعدادات</div>
-            <div className="text-[10px] text-azkar-ink-faint">اختر فئة لعرض إعداداتها</div>
+            <div className="text-[10px] text-azkar-ink-faint">حالة التطبيق وكل التفضيلات في مكان واحد</div>
           </div>
         </div>
-        <div className="grid gap-3">
-          {(
-            [
-              ['general', 'عام', 'المظهر والأرقام والحركة والخصوصية'],
-              ['quran', 'المصحف', 'الخط والقارئ والتفسير'],
-              ['azkar', 'الأذكار', 'الكاش وتفضيلات الأذكار'],
-              ['tasbih', 'السبحة', 'الصوت والاهتزاز والعبارة المخصصة'],
-              ['prayer', 'الصلاة', 'طريقة الحساب والعصر والتذكيرات'],
-              ['notifications', 'الإشعارات', 'الأذان ومواقيت الصلاة والتنبيهات اليومية'],
-              ['device', 'الأذونات والجهاز', 'الإشعارات والموقع والحركة'],
-              ['hadith', 'الأحاديث', 'حجم الخط والملاحظات'],
-              ['prophets', 'قصص الأنبياء', 'حجم الخط وأسئلة التأمل'],
-              ['motivation', 'التحفيز', 'إحصائيات السبحة والختمة'],
-              ['privacy', 'الخصوصية والبيانات', 'النسخ الاحتياطي والبيانات'],
-              ['about', 'حول مسلم', 'معلومات التطبيق والتواصل'],
-            ] as const
-          ).map(([id, t, d]) => (
-            <button
-              key={id}
-              onClick={() => setCategory(id)}
-              className="u-pressable flex items-center gap-3 rounded-[var(--r-lg)] border border-azkar-gold-soft bg-azkar-card px-4 py-4 text-right shadow-sm"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-azkar-teal-tint text-lg text-azkar-teal-deep">
-                {id === 'general'
-                  ? '⚙'
-                  : id === 'quran'
-                    ? '۞'
-                    : id === 'tasbih'
-                      ? '◉'
-                      : id === 'prayer'
-                        ? '◷'
-                        : id === 'notifications'
-                          ? '◌'
-                          : id === 'device'
-                            ? '✆'
-                            : id === 'hadith'
-                              ? '✎'
-                              : id === 'prophets'
-                                ? '❖'
-                                : id === 'motivation'
-                            ? '✦'
-                            : id === 'privacy'
-                              ? '◈'
-                              : 'م'}
-              </span>
-              <span className="min-w-0 flex-1">
-                <b className="block font-amiri text-base text-azkar-teal-deep">{t}</b>
-                <span className="block text-[10px] text-azkar-ink-soft">{d}</span>
-              </span>
-              <span>‹</span>
-            </button>
-          ))}
-        </div>
+
+        <SettingsStatusCard onOpen={setCategory} />
+
+        {CATEGORY_GROUPS.map(([groupTitle, items]) => (
+          <section key={groupTitle} className="mb-5" aria-label={groupTitle}>
+            <h2 className="mb-2 px-1 font-amiri text-sm font-bold text-azkar-teal-deep">{groupTitle}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {items.map(([id, t, d, Icon]) => (
+                <button
+                  key={id}
+                  onClick={() => setCategory(id)}
+                  className="u-pressable flex min-h-[6.2rem] flex-col items-start gap-2 rounded-[var(--r-lg)] border border-azkar-gold-soft bg-azkar-card px-3 py-3 text-right shadow-sm"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-azkar-teal-tint text-azkar-teal-deep">
+                    <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </span>
+                  <b className="font-amiri text-[15px] leading-5 text-azkar-teal-deep">{t}</b>
+                  <span className="text-[9px] leading-4 text-azkar-ink-soft">{d}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     )
   return (

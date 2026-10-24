@@ -2,6 +2,40 @@ import { useEffect, useMemo, useState } from 'react'
 import { currentMethod, currentSchool, dateKey, REQUIRED_TIMINGS } from './prayerTimes'
 import { normalizeCoords } from './prayerCoords'
 import type { Coords, Timings } from './prayerTimes'
+import type { PrayerMethod, PrayerSchool } from './prayerTimes'
+
+// Local astronomical fallback (adhan) so prayer times, and every reminder
+// scheduled from them, still work with no network at all.
+const METHOD_FACTORIES = {
+  '1': 'Karachi',
+  '2': 'NorthAmerica',
+  '3': 'MuslimWorldLeague',
+  '4': 'UmmAlQura',
+  '5': 'Egyptian',
+} as const
+
+async function computeTimingsLocally(c: Coords, date: Date, method: PrayerMethod, school: PrayerSchool): Promise<Timings | null> {
+  try {
+    const adhan = await import('adhan')
+    const factoryName = METHOD_FACTORIES[method] ?? 'Egyptian'
+    const factory = (adhan.CalculationMethod as unknown as Record<string, () => InstanceType<typeof adhan.CalculationParameters>>)[factoryName]
+    const params = factory.call(adhan.CalculationMethod)
+    if (school === '1') params.madhab = adhan.Madhab.Hanafi
+    const times = new adhan.PrayerTimes(new adhan.Coordinates(c.lat, c.lng), date, params)
+    const format = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`
+    const timings: Timings = {
+      Fajr: format(times.fajr),
+      Sunrise: format(times.sunrise),
+      Dhuhr: format(times.dhuhr),
+      Asr: format(times.asr),
+      Maghrib: format(times.maghrib),
+      Isha: format(times.isha),
+    }
+    return validTimings(timings) ? timings : null
+  } catch {
+    return null
+  }
+}
 
 const API='https://api.aladhan.com/v1'
 const MAX_CACHE_AGE=3*24*60*60*1000
@@ -61,11 +95,18 @@ export async function getTimings(coords:Coords,date:Date,options:{signal?:AbortS
   const method=currentMethod(),school=currentSchool(),key=cacheKey(date,c,method,school)
   const cached=read(key)
   if(validTimings(cached))return cached
-  const map=await fetchMonth(c,date,method,school,options.signal)
-  const t=map.get(date.getDate())
-  if(!t||!validTimings(t))return null
-  storeDay(date,c,t,method,school)
-  return t
+  try{
+    const map=await fetchMonth(c,date,method,school,options.signal)
+    const t=map.get(date.getDate())
+    if(!t||!validTimings(t))throw Error('prayer-api')
+    storeDay(date,c,t,method,school)
+    return t
+  }catch{
+    if(options.signal?.aborted)return null
+    const local=await computeTimingsLocally(c,date,method,school)
+    if(local)storeDay(date,c,local,method,school)
+    return local
+  }
 }
 export function cleanupPrayerCache(){
   try{

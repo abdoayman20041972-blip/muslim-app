@@ -211,6 +211,9 @@ export const API_EDITIONS: ApiEdition[] = [
 ]
 
 export const HADITH_API_BASE = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions'
+// The extra hadith editions are bundled with the app (public/data/hadith) so
+// they open instantly and work fully offline; the CDN stays as a fallback.
+const HADITH_LOCAL_BASE = '/data/hadith'
 
 export type ApiHadith = { hadithnumber: string | number; text: string }
 export type ApiEditionData = { hadiths: ApiHadith[] }
@@ -231,10 +234,20 @@ export async function loadApiEdition(edition: string): Promise<ApiEditionData> {
   } catch {
     // sessionStorage unavailable; fall through to network
   }
-  const response = await fetch(`${HADITH_API_BASE}/${edition}.min.json`)
-  if (!response.ok) throw new Error(`فشل تحميل الحديث (${response.status})`)
-  const data = (await response.json()) as ApiEditionData
-  if (!Array.isArray(data.hadiths)) throw new Error('بيانات غير صالحة')
+  const sources = [`${HADITH_LOCAL_BASE}/${edition}.min.json`, `${HADITH_API_BASE}/${edition}.min.json`]
+  let data: ApiEditionData | null = null
+  for (const source of sources) {
+    try {
+      const response = await fetch(source)
+      if (!response.ok) continue
+      const parsed = (await response.json()) as ApiEditionData
+      if (Array.isArray(parsed.hadiths)) data = parsed
+      if (data) break
+    } catch {
+      // try the next source
+    }
+  }
+  if (!data) throw new Error('فشل تحميل الحديث')
   editionCache.set(edition, data)
   try {
     sessionStorage.setItem(storageKey, JSON.stringify(data))

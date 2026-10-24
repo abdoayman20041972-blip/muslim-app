@@ -66,6 +66,7 @@ export function NotificationsSection({
   useEffect(() => {
     let cancelled = false
     const load = async () => {
+      if (native) return // server push does not apply inside the APK
       if (notificationStatus === 'denied') {
         if (!cancelled) setPushState('denied')
         return

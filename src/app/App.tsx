@@ -223,6 +223,31 @@ export function App() {
   useEffect(() => {
     const target = consumeNotificationOpen()
     if (target) setView(target)
+    // Native shell: tapping a scheduled notification opens the right view.
+    if (!Capacitor.isNativePlatform()) return
+    let removeTapListener = () => {}
+    let cancelled = false
+    void (async () => {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications')
+        if (cancelled) return
+        const subscription = await LocalNotifications.addListener(
+          'localNotificationActionPerformed',
+          (event) => {
+            const target = notificationOpenTarget((event.notification.extra?.target as string | undefined) ?? null)
+            if (target) setView(target)
+          },
+        )
+        removeTapListener = () => void subscription.remove()
+      } catch {
+        // Native bridge unavailable; fall back to plain app launch.
+      }
+    })()
+    return () => {
+      cancelled = true
+      removeTapListener()
+    }
+  }, [])
     const onNotificationClick = (event: MessageEvent) => {
       if (event.data?.type !== 'notification-click' || typeof event.data.url !== 'string') return
       const targetUrl = new URL(event.data.url, window.location.origin)

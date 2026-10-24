@@ -360,6 +360,26 @@ export function QuranReaderView({ view, setView }: Props) {
       return
     }
     setTafsirLoading(true)
+    // The default Muyassar tafsir is bundled per surah in the app package, so
+    // it opens instantly and works with no network. Other sources stay online.
+    if (source === 'muyassar') {
+      try {
+        const response = await fetch(`/data/tafsir/muyassar/${view.number}.json`)
+        if (response.ok) {
+          const surahTafsir = (await response.json()) as Record<string, string>
+          const text = surahTafsir[String(a.numberInSurah)]
+          if (typeof text === 'string' && text.trim()) {
+            try {
+              localStorage.setItem(key, text)
+            } catch {}
+            setTafsirText(text)
+            return
+          }
+        }
+      } catch {
+        // fall through to the online source below
+      }
+    }
     try {
       const url = `https://alfurqan.online/api/v1/tafseer/${sourceId}/surah/${view.number}/ayah/${a.numberInSurah}`
       const controller = new AbortController()

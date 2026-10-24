@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import type { ZikrCategory } from '../../../azkar-data'
 import { BackButton } from '../../components/app-chrome'
 import { toArabicDigits, toArabicNumber, type View } from '../../constants'
@@ -34,6 +35,16 @@ async function copyText(text: string) {
 }
 
 async function shareText(text: string) {
+  // Inside the APK navigator.share does not exist; use the native share sheet.
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { Share } = await import('@capacitor/share')
+      await Share.share({ text, dialogTitle: 'مشاركة الذكر' })
+      return
+    } catch {
+      return // user dismissed the sheet or bridge unavailable
+    }
+  }
   if (navigator.share) {
     await navigator.share({ text }).catch(() => undefined)
   } else {

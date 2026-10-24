@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import type { ZikrCategory } from '../../../azkar-data'
 import { BackButton } from '../../components/app-chrome'
 import { useConfirmDialog } from '../../components/confirm-dialog'
@@ -116,7 +117,11 @@ export function CategoryView({ category, favorites, onToggleFavorite, onBack }: 
   const shareText = async (text: string, source?: string) => {
     const value = source ? `${text}\n\n${source}` : text
     try {
-      if (navigator.share) {
+      if (Capacitor.isNativePlatform()) {
+        // Inside the APK navigator.share does not exist; use the native sheet.
+        const { Share } = await import('@capacitor/share')
+        await Share.share({ title: category.label, text: value, dialogTitle: 'مشاركة الذكر' })
+      } else if (navigator.share) {
         await navigator.share({ title: category.label, text: value })
       } else {
         await navigator.clipboard.writeText(value)

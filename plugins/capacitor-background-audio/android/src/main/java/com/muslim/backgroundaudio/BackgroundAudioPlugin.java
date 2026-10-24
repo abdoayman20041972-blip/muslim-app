@@ -1,8 +1,10 @@
 package com.muslim.backgroundaudio;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.view.WindowManager;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -47,6 +49,27 @@ public class BackgroundAudioPlugin extends Plugin {
             String message = exception.getMessage();
             call.reject(message == null ? "Unable to stop background audio service" : message);
         }
+    }
+
+    @PluginMethod
+    public void setKeepScreenOn(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        final Activity activity = getBridge().getActivity();
+        if (activity == null || activity.getWindow() == null) {
+            call.reject("Activity is unavailable");
+            return;
+        }
+        final boolean flag = enabled;
+        activity.runOnUiThread(
+            () -> {
+                if (flag) {
+                    activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                } else {
+                    activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                }
+            }
+        );
+        call.resolve();
     }
 
     @PluginMethod
