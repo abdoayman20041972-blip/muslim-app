@@ -1,0 +1,412 @@
+import { useEffect, useState } from 'react'
+import {
+  FONT_ORDER,
+  FONT_SIZES,
+  formatLocalizedDate,
+  toArabicDigits,
+  toArabicNumber,
+} from '../../constants'
+import { getNotificationPermission, requestNotificationPermission } from '../notifications/notifications'
+import { Toggle } from '../../components/app-chrome'
+import { useConfirmDialog } from '../../components/confirm-dialog'
+import { useQuranPreferences } from '../quran/useQuranPreferences'
+import { APP_SETTINGS_KEYS, readSetting, writeSetting, isBackupKey } from '../../settings'
+import { clearAzkarProgressDay } from '../azkar/azkarProgress'
+import { AzkarStreakStats, TasbihStats } from './settingsStats'
+import { Row, Section, Choice } from './settingsPrimitives'
+import { AboutSection } from './sections/AboutSection'
+import { NotificationsSection } from './sections/NotificationsSection'
+import { AzkarSection } from './sections/AzkarSection'
+import { PrayerSection } from './sections/PrayerSection'
+import { QuranSection } from './sections/QuranSection'
+import { TasbihSection } from './sections/TasbihSection'
+import { MotivationSection } from './sections/MotivationSection'
+import { PrivacySection } from './sections/PrivacySection'
+import { GeneralSection } from './sections/GeneralSection'
+
+type Props = {
+  darkMode: boolean
+  appearance: 'light' | 'dark' | 'system'
+  onAppearance: (v: 'light' | 'dark' | 'system') => void
+  onBack: () => void
+}
+type Category =
+  | 'main'
+  | 'general'
+  | 'quran'
+  | 'azkar'
+  | 'tasbih'
+  | 'prayer'
+  | 'notifications'
+  | 'motivation'
+  | 'privacy'
+  | 'about'
+export function SettingsView({ appearance, onAppearance, onBack }: Props) {
+  const { confirm, alert } = useConfirmDialog()
+  const { fontSize, setFontSize, reciter, setReciter, layout, setLayout } = useQuranPreferences()
+  const [category, setCategory] = useState<Category>('main')
+  const [azkarSource, setAzkarSource] = useState(readSetting('azkar_catalog_source', 'bundled'))
+  const [uiSound, setUiSound] = useState(true),
+    [tasbihSound, setTasbihSound] = useState(true),
+    [vibration, setVibration] = useState(true),
+    [reminders, setReminders] = useState(false),
+    [prayerTime, setPrayerTime] = useState(true)
+  const [dailyAyah, setDailyAyah] = useState(false),
+    [azkarMorning, setAzkarMorning] = useState(false),
+    [azkarEvening, setAzkarEvening] = useState(false),
+    [quranReminder, setQuranReminder] = useState(false),
+    [quranReminderTime, setQuranReminderTime] = useState('20:00'),
+    [azkarCounter, setAzkarCounter] = useState(
+      readSetting(APP_SETTINGS_KEYS.azkarCounterEnabled, '1') !== '0',
+    ),
+    [journeyAutoAdvance, setJourneyAutoAdvance] = useState(
+      readSetting(APP_SETTINGS_KEYS.journeyAutoAdvance, '0') === '1',
+    )
+  const [notificationStatus, setNotificationStatus] = useState(getNotificationPermission()),
+    [calc, setCalc] = useState(readSetting(APP_SETTINGS_KEYS.prayerCalcMethod, '5')),
+    [asr, setAsr] = useState(readSetting(APP_SETTINGS_KEYS.asrSchool, '0'))
+  const [timeFormat, setTimeFormat] = useState(readSetting(APP_SETTINGS_KEYS.timeFormat, '24')),
+    [tafsir, setTafsir] = useState(readSetting(APP_SETTINGS_KEYS.tafsirSource, 'muyassar')),
+    [numberStyle, setNumberStyle] = useState(readSetting(APP_SETTINGS_KEYS.numberStyle, 'arabic')),
+    [uiScale, setUiScale] = useState(readSetting(APP_SETTINGS_KEYS.uiScale, 'md')),
+    [reduced, setReduced] = useState(readSetting(APP_SETTINGS_KEYS.reducedMotion, '0') === '1'),
+    [awake, setAwake] = useState(readSetting(APP_SETTINGS_KEYS.keepScreenAwake, '0') === '1'),
+    [restore, setRestore] = useState(readSetting(APP_SETTINGS_KEYS.restoreLastPage, '0') === '1')
+  const [theme, setTheme] = useState(readSetting('azkar_theme_color', 'teal')),
+    [hijri, setHijri] = useState(readSetting(APP_SETTINGS_KEYS.hijriCalendar, '1') !== '0'),
+    [dataSaver, setDataSaver] = useState(readSetting(APP_SETTINGS_KEYS.dataSaver, '0') === '1'),
+    [custom, setCustom] = useState(''),
+    [customGoal, setCustomGoal] = useState('33'),
+    [khatmahPage, setKhatmahPage] = useState(readSetting(APP_SETTINGS_KEYS.khatmahPage, '0')),
+    [khatmahTarget, setKhatmahTarget] = useState(
+      readSetting(APP_SETTINGS_KEYS.khatmahTarget, '604'),
+    )
+  useEffect(() => {
+    setAzkarSource(readSetting('azkar_catalog_source', 'bundled'))
+    setUiSound(readSetting(APP_SETTINGS_KEYS.uiSound, '1') !== '0')
+    setTasbihSound(readSetting(APP_SETTINGS_KEYS.tasbihSound, '1') !== '0')
+    setVibration(readSetting(APP_SETTINGS_KEYS.vibration, '1') !== '0')
+    setReminders(readSetting(APP_SETTINGS_KEYS.reminders) === '1')
+    setPrayerTime(readSetting(APP_SETTINGS_KEYS.prayerTime, '1') === '1')
+    setDailyAyah(readSetting(APP_SETTINGS_KEYS.dailyAyah) === '1')
+    setQuranReminder(readSetting(APP_SETTINGS_KEYS.quranReminder) === '1')
+    setQuranReminderTime(readSetting(APP_SETTINGS_KEYS.quranReminderTime, '20:00'))
+    const legacyAzkar = readSetting('azkar_azkar_reminders') === '1'
+    const morning = readSetting(APP_SETTINGS_KEYS.azkarMorning, legacyAzkar ? '1' : '0') === '1'
+    const evening = readSetting(APP_SETTINGS_KEYS.azkarEvening, legacyAzkar ? '1' : '0') === '1'
+    setAzkarMorning(morning)
+    setAzkarEvening(evening)
+    if (legacyAzkar) {
+      writeSetting(APP_SETTINGS_KEYS.azkarMorning, '1')
+      writeSetting(APP_SETTINGS_KEYS.azkarEvening, '1')
+      localStorage.removeItem('azkar_azkar_reminders')
+    }
+    setAzkarCounter(readSetting(APP_SETTINGS_KEYS.azkarCounterEnabled, '1') !== '0')
+    setJourneyAutoAdvance(readSetting(APP_SETTINGS_KEYS.journeyAutoAdvance, '0') === '1')
+  }, [])
+  const save = (k: string, v: string) => {
+    writeSetting(k, v)
+    window.dispatchEvent(new Event('azkar-settings-changed'))
+  }
+  const toggle = (k: string, set: (v: boolean) => void, v: boolean) => {
+    const n = !v
+    set(n)
+    save(k, n ? '1' : '0')
+  }
+  const notify = async () => {
+    const p = await requestNotificationPermission()
+    setNotificationStatus(p)
+    return p === 'granted'
+  }
+  const toggleNotify = async (k: string, set: (v: boolean) => void, v: boolean) => {
+    if (v) {
+      toggle(k, set, v)
+      return
+    }
+    if (await notify()) toggle(k, set, false)
+  }
+  const exportData = () => {
+    const data: Record<string, string> = {}
+    Object.keys(localStorage)
+      .filter(isBackupKey)
+      .forEach((k) => {
+        const v = localStorage.getItem(k)
+        if (v !== null) data[k] = v
+      })
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            app: 'مسلم',
+            format: 'muslim-local-backup',
+            version: 2,
+            exportedAt: new Date().toISOString(),
+            data,
+          },
+          null,
+          2,
+        ),
+      ],
+      { type: 'application/json' },
+    )
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'muslim-backup-' + new Date().toISOString().slice(0, 10) + '.json'
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  }
+  const importData = async (file: File) => {
+    try {
+      const p = JSON.parse(await file.text())
+      if (p?.format !== 'muslim-local-backup' || !p.data) throw 0
+      const entries = Object.entries(p.data).filter(
+        ([k, v]) => isBackupKey(k) && typeof v === 'string',
+      ) as [string, string][]
+      if (!entries.length) throw 0
+      if (!(await confirm({ message: 'استبدال البيانات الحالية بالنسخة الاحتياطية؟' }))) return
+      Object.keys(localStorage)
+        .filter(isBackupKey)
+        .forEach((k) => localStorage.removeItem(k))
+      entries.forEach(([k, v]) => localStorage.setItem(k, v))
+      location.reload()
+    } catch {
+      await alert({ message: 'ملف النسخة الاحتياطية غير صالح أو لا يخص تطبيق مسلم.' })
+    }
+  }
+  const reset = async () => {
+    if (
+      !(await confirm({
+        message: 'إعادة الإعدادات الافتراضية؟ سيتم مسح الإعدادات المخصصة وبعض بيانات التخصيص مثل العبارات المخصصة والختمة.',
+        danger: true,
+      }))
+    )
+      return
+    const resetKeys = [
+      APP_SETTINGS_KEYS.darkMode,
+      APP_SETTINGS_KEYS.appearance,
+      APP_SETTINGS_KEYS.numberStyle,
+      APP_SETTINGS_KEYS.timeFormat,
+      APP_SETTINGS_KEYS.uiScale,
+      APP_SETTINGS_KEYS.reducedMotion,
+      APP_SETTINGS_KEYS.keepScreenAwake,
+      APP_SETTINGS_KEYS.restoreLastPage,
+      APP_SETTINGS_KEYS.uiSound,
+      APP_SETTINGS_KEYS.tasbihSound,
+      APP_SETTINGS_KEYS.vibration,
+      APP_SETTINGS_KEYS.reminders,
+      APP_SETTINGS_KEYS.prayerTime,
+      APP_SETTINGS_KEYS.dailyAyah,
+      APP_SETTINGS_KEYS.quranReminder,
+      APP_SETTINGS_KEYS.quranReminderTime,
+      APP_SETTINGS_KEYS.azkarMorning,
+      APP_SETTINGS_KEYS.azkarEvening,
+      APP_SETTINGS_KEYS.tafsirSource,
+      APP_SETTINGS_KEYS.khatmahPage,
+      APP_SETTINGS_KEYS.khatmahTarget,
+      APP_SETTINGS_KEYS.prayerCalcMethod,
+      APP_SETTINGS_KEYS.asrSchool,
+      APP_SETTINGS_KEYS.prayerReminderLead,
+      APP_SETTINGS_KEYS.coords,
+      APP_SETTINGS_KEYS.prayerLocationUpdatedAt,
+      APP_SETTINGS_KEYS.fontSize,
+      APP_SETTINGS_KEYS.reciter,
+      APP_SETTINGS_KEYS.readingLayout,
+      APP_SETTINGS_KEYS.hijriCalendar,
+      APP_SETTINGS_KEYS.dataSaver,
+      APP_SETTINGS_KEYS.customTasbih,
+      APP_SETTINGS_KEYS.azkarCounterEnabled,
+      'azkar_theme_color',
+      'azkar_catalog_source',
+      'azkar_custom_tasbih',
+      'azkar_custom_tasbih_list',
+    ]
+    resetKeys.forEach((k) => localStorage.removeItem(k))
+    location.reload()
+  }
+  const back = () => (category === 'main' ? onBack() : setCategory('main'))
+  if (category === 'main')
+    return (
+      <div className="animate-in fade-in duration-300">
+        <div className="mb-5 flex items-center gap-3">
+          <button onClick={onBack} className="h-10 w-10 rounded-full border bg-azkar-card">
+            ‹
+          </button>
+          <div>
+            <div className="font-amiri text-2xl font-bold text-azkar-teal-deep">الإعدادات</div>
+            <div className="text-[10px] text-azkar-ink-faint">اختر فئة لعرض إعداداتها</div>
+          </div>
+        </div>
+        <div className="grid gap-3">
+          {(
+            [
+              ['general', 'عام', 'المظهر والأرقام والحركة والخصوصية'],
+              ['quran', 'المصحف', 'الخط والقارئ والتفسير'],
+              ['azkar', 'الأذكار', 'الكاش وتفضيلات الأذكار'],
+              ['tasbih', 'السبحة', 'الصوت والاهتزاز والعبارة المخصصة'],
+              ['prayer', 'الصلاة', 'طريقة الحساب والعصر والتذكيرات'],
+              ['notifications', 'الإشعارات', 'الصلاة وآية اليوم وأذكار الصباح والمساء'],
+              ['motivation', 'التحفيز', 'إحصائيات السبحة والختمة'],
+              ['privacy', 'الخصوصية والبيانات', 'النسخ الاحتياطي والبيانات'],
+              ['about', 'حول مسلم', 'معلومات التطبيق والتواصل'],
+            ] as const
+          ).map(([id, t, d]) => (
+            <button
+              key={id}
+              onClick={() => setCategory(id)}
+              className="u-pressable flex items-center gap-3 rounded-[var(--r-lg)] border border-azkar-gold-soft bg-azkar-card px-4 py-4 text-right shadow-sm"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-azkar-teal-tint text-lg text-azkar-teal-deep">
+                {id === 'general'
+                  ? '⚙'
+                  : id === 'quran'
+                    ? '۞'
+                    : id === 'tasbih'
+                      ? '◉'
+                      : id === 'prayer'
+                        ? '◷'
+                        : id === 'notifications'
+                          ? '◌'
+                          : id === 'motivation'
+                            ? '✦'
+                            : id === 'privacy'
+                              ? '◈'
+                              : 'م'}
+              </span>
+              <span className="min-w-0 flex-1">
+                <b className="block font-amiri text-base text-azkar-teal-deep">{t}</b>
+                <span className="block text-[10px] text-azkar-ink-soft">{d}</span>
+              </span>
+              <span>‹</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  return (
+    <div className="animate-in fade-in duration-200">
+      <div className="mb-5 flex items-center gap-3">
+        <button onClick={back} className="h-10 w-10 rounded-full border bg-azkar-card">
+          ‹
+        </button>
+        <div className="font-amiri text-2xl font-bold text-azkar-teal-deep">
+          {
+            (
+              {
+                general: 'عام',
+                quran: 'المصحف',
+                azkar: 'الأذكار',
+                tasbih: 'السبحة',
+                prayer: 'الصلاة',
+                notifications: 'الإشعارات',
+                motivation: 'التحفيز',
+                privacy: 'الخصوصية والبيانات',
+                about: 'حول مسلم',
+              } as Record<string, string>
+            )[category]
+          }
+        </div>
+      </div>
+      {category === 'general' && (
+        <GeneralSection
+          theme={theme} setTheme={setTheme}
+          appearance={appearance} onAppearance={onAppearance}
+          numberStyle={numberStyle} setNumberStyle={setNumberStyle}
+          uiScale={uiScale} setUiScale={setUiScale}
+          uiSound={uiSound} setUiSound={setUiSound}
+          reduced={reduced} setReduced={setReduced}
+          awake={awake} setAwake={setAwake}
+          restore={restore} setRestore={setRestore}
+          hijri={hijri} setHijri={setHijri}
+          dataSaver={dataSaver} setDataSaver={setDataSaver}
+          save={save} toggle={toggle}
+        />
+      )}
+      {category === 'quran' && (
+        <QuranSection
+          fontSize={fontSize}
+          setFontSize={setFontSize}
+          reciter={reciter}
+          setReciter={setReciter}
+          layout={layout}
+          setLayout={setLayout}
+          tafsir={tafsir}
+          setTafsir={setTafsir}
+          save={save}
+        />
+      )}
+      {category === 'azkar' && (
+        <AzkarSection
+          azkarSource={azkarSource}
+          setAzkarSource={setAzkarSource}
+          azkarCounter={azkarCounter}
+          setAzkarCounter={setAzkarCounter}
+          journeyAutoAdvance={journeyAutoAdvance}
+          setJourneyAutoAdvance={setJourneyAutoAdvance}
+          toggle={toggle}
+          save={save}
+        />
+      )}
+      {category === 'tasbih' && (
+        <TasbihSection
+          tasbihSound={tasbihSound}
+          setTasbihSound={setTasbihSound}
+          vibration={vibration}
+          setVibration={setVibration}
+          custom={custom}
+          setCustom={setCustom}
+          customGoal={customGoal}
+          setCustomGoal={setCustomGoal}
+          save={save}
+          toggle={toggle}
+        />
+      )}
+      {category === 'prayer' && (
+        <PrayerSection
+          calc={calc} setCalc={setCalc}
+          asr={asr} setAsr={setAsr}
+          timeFormat={timeFormat} setTimeFormat={setTimeFormat}
+          save={save}
+        />
+      )}
+      {category === 'notifications' && (
+        <NotificationsSection
+          notificationStatus={notificationStatus}
+          reminders={reminders}
+          prayerTime={prayerTime}
+          dailyAyah={dailyAyah}
+          quranReminder={quranReminder}
+          quranReminderTime={quranReminderTime}
+          setQuranReminder={setQuranReminder}
+          setQuranReminderTime={setQuranReminderTime}
+          azkarMorning={azkarMorning}
+          azkarEvening={azkarEvening}
+          notify={notify}
+          toggleNotify={toggleNotify}
+          setReminders={setReminders}
+          setPrayerTime={setPrayerTime}
+          setDailyAyah={setDailyAyah}
+          setAzkarMorning={setAzkarMorning}
+          setAzkarEvening={setAzkarEvening}
+        />
+      )}
+      {category === 'motivation' && (
+        <MotivationSection
+          khatmahPage={khatmahPage}
+          setKhatmahPage={setKhatmahPage}
+          khatmahTarget={khatmahTarget}
+          setKhatmahTarget={setKhatmahTarget}
+          save={save}
+        />
+      )}
+      {category === 'privacy' && (
+        <PrivacySection
+          hijri={hijri}
+          exportData={exportData}
+          importData={importData}
+          reset={reset}
+        />
+      )}
+      {category === 'about' && <AboutSection />}
+    </div>
+  )
+}
