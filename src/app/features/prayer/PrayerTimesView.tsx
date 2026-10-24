@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { Geolocation } from '@capacitor/geolocation'
 import { APP_SETTINGS_KEYS, readSetting, writeSetting } from '../../settings'
 import { formatLocalizedDate } from '../../constants'
 import {
@@ -166,32 +168,45 @@ export function PrayerTimesView({ onBack, onOpenQibla }: { onBack: () => void; o
     }
   }, [])
   const locate = () => {
-    if (!('geolocation' in navigator)) {
-      setLocationError('المتصفح لا يدعم تحديد الموقع.')
-      return
-    }
     setLocating(true)
     setLocationError(null)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const c = normalizeCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        if (c) {
-          saveCoords(c)
-          setCoords(c)
+    const finish = (c: { lat: number; lng: number } | null, error?: string) => {
+      if (c) {
+        const n = normalizeCoords(c)
+        if (n) {
+          saveCoords(n)
+          setCoords(n)
           setLocationVersion((v) => v + 1)
         }
         setLocating(false)
-      },
-      (e) => {
-        setLocationError(
+        return
+      }
+      setLocationError(error || 'تعذر تحديد الموقع. اختر مدينة أو أدخل الإحداثيات يدويًا.')
+      setLocating(false)
+    }
+    if (Capacitor.isNativePlatform()) {
+      Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 12000 })
+        .then((pos) => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }))
+        .catch(() =>
+          finish(null, 'تم رفض إذن الموقع أو تعذر تحديده. اختر مدينة أو أدخل الإحداثيات يدويًا.'),
+        )
+      return
+    }
+    if (!('geolocation' in navigator)) {
+      finish(null, 'المتصفح لا يدعم تحديد الموقع.')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (e) =>
+        finish(
+          null,
           e.code === 1
             ? 'تم رفض إذن الموقع. يمكنك اختيار مدينة أو إدخال الإحداثيات يدويًا.'
             : e.code === 2
               ? 'تعذر تحديد الموقع حاليًا. اختر مدينة أو أدخل الإحداثيات يدويًا.'
               : 'انتهت مهلة تحديد الموقع. اختر مدينة أو أدخل الإحداثيات يدويًا.',
-        )
-        setLocating(false)
-      },
+        ),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
     )
   }

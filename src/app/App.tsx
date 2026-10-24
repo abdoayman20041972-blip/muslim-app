@@ -70,6 +70,7 @@ import { useWakeLockSetting } from "./features/settings/useWakeLockSetting";
 import { useAppearanceMode } from "./features/settings/useAppearanceMode";
 import { useUiScaleSync } from "./features/settings/useUiScaleSync";
 import { usePrayerReminders } from "./features/notifications/usePrayerReminders";
+import { scheduleNativePrayerNotifications } from "./features/notifications/nativeNotifications";
 import { useIslamicNotifications } from "./features/notifications/useIslamicNotifications";
 import { usePushSubscription } from "./features/notifications/pushSubscription";
 import { useAppSounds } from "./features/sound/useAppSounds";
@@ -194,6 +195,21 @@ export function App() {
   } = useAzkarFeature(categories, view);
 
   usePrayerReminders();
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const refresh = () => void scheduleNativePrayerNotifications();
+    refresh();
+    const id = window.setInterval(refresh, 60 * 60 * 1000); // re-schedule next day
+    window.addEventListener("azkar-settings-changed", refresh);
+    window.addEventListener("azkar-prayer-settings-changed", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("azkar-settings-changed", refresh);
+      window.removeEventListener("azkar-prayer-settings-changed", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
   useIslamicNotifications();
   const { sync: syncPushSubscription } = usePushSubscription();
   useWakeLockSetting();

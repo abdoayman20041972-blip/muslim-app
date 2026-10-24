@@ -67,6 +67,17 @@ jobs:
       - name: Create Android project (generated during build, not committed)
         run: npx cap add android
 
+      - name: Set version name to 1.1.0
+        run: |
+          GRADLE=android/app/build.gradle
+          sed -i 's/versionName "1.0"/versionName "1.1.0"/' "$GRADLE"
+          grep -q 'versionName "1.1.0"' "$GRADLE" || { echo "::error::versionName bump failed"; exit 1; }
+
+      - name: Bundle adhan sound into raw resources
+        run: |
+          mkdir -p android/app/src/main/res/raw
+          cp native/adhan.mp3 android/app/src/main/res/raw/adhan.mp3
+
       - name: Apply release signing configuration
         run: python3 scripts/apply-signing.py
 

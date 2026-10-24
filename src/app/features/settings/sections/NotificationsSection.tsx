@@ -3,7 +3,9 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useEffect, useState } from 'react'
 import { APP_SETTINGS_KEYS, readSetting, writeSetting } from '../../../settings'
 import { Toggle } from '../../../components/app-chrome'
-import { Row, Section } from '../settingsPrimitives'
+import { Row, Section, Choice } from '../settingsPrimitives'
+import { Capacitor } from '@capacitor/core'
+import { readAdhanSoundMode } from '../../notifications/nativeNotifications'
 import { usePushSubscription } from '../../notifications/pushSubscription'
 
 type NotificationsSectionProps = {
@@ -41,6 +43,7 @@ export function NotificationsSection({
 }: NotificationsSectionProps) {
   const { subscribe, getStatus, hasBrowserSubscription, unsubscribe } = usePushSubscription()
   const [pushState,setPushState] = useState<'idle'|'loading'|'enabled'|'disabled'|'denied'|'error'>('idle')
+  const [adhanSound,setAdhanSound] = useState(readAdhanSoundMode)
 
   useEffect(() => {
     let cancelled = false
@@ -84,6 +87,17 @@ export function NotificationsSection({
       </Row>
       <Row title="تذكير الصلاة" description="إشعار مستقل عند دخول وقت الصلاة.">
         <Toggle checked={prayerTime} onChange={() => void toggleNotify(APP_SETTINGS_KEYS.prayerTime,setPrayerTime,prayerTime)} label="تذكير الصلاة"/>
+      </Row>
+      <Row title="صوت الأذان" description={Capacitor.isNativePlatform() ? 'صوت التنبيه عند دخول وقت الصلاة' : 'يعمل داخل تطبيق أندرويد'} stacked>
+        <Choice
+          current={adhanSound}
+          onChange={(v) => {
+            setAdhanSound(v as typeof adhanSound)
+            writeSetting('adhan_sound', v)
+            window.dispatchEvent(new Event('azkar-settings-changed'))
+          }}
+          labels={{ adhan: 'صوت الأذان', default: 'نغمة النظام', silent: 'صامت' }}
+        />
       </Row>
       <Row title="تذكير قبل الصلاة بـ٥ دقائق" description="إشعار مستقل قبل كل صلاة بخمس دقائق.">
         <Toggle checked={reminders} onChange={() => void toggleNotify(APP_SETTINGS_KEYS.reminders,setReminders,reminders)} label="قبل الصلاة بـ٥ دقائق"/>

@@ -6,8 +6,6 @@ import { clearAzkarProgressDay } from '../../azkar/azkarProgress'
 import { Row, Section, Choice } from '../settingsPrimitives'
 
 type AzkarSectionProps = {
-  azkarSource: string
-  setAzkarSource: Dispatch<SetStateAction<string>>
   azkarCounter: boolean
   setAzkarCounter: Dispatch<SetStateAction<boolean>>
   journeyAutoAdvance: boolean
@@ -16,7 +14,7 @@ type AzkarSectionProps = {
   save: (key: string, value: string) => void
 }
 
-type AzkarSettingsCategory = 'reading' | 'counter' | 'journey' | 'interaction' | 'data' | 'content'
+type AzkarSettingsCategory = 'reading' | 'counter' | 'journey' | 'interaction' | 'data'
 
 const CATEGORIES = [
   { id: 'reading' as const, title: 'تجربة القراءة', description: 'طريقة عرض الأذكار أثناء القراءة', icon: '◉' },
@@ -24,7 +22,6 @@ const CATEGORIES = [
   { id: 'journey' as const, title: 'رحلة الأذكار', description: 'سلوك الانتقال داخل الرحلة', icon: '➜' },
   { id: 'interaction' as const, title: 'التفاعل', description: 'إعدادات التفاعل مع الأذكار', icon: '✦' },
   { id: 'data' as const, title: 'التقدم والبيانات', description: 'التقدم المحلي وإدارته', icon: '▣' },
-  { id: 'content' as const, title: 'المحتوى', description: 'مصدر محتوى الأذكار والكاش', icon: '◈' },
 ]
 
 function EmptyCategory({ title }: { title: string }) {
@@ -38,8 +35,6 @@ function EmptyCategory({ title }: { title: string }) {
 }
 
 export function AzkarSection({
-  azkarSource,
-  setAzkarSource,
   azkarCounter,
   setAzkarCounter,
   journeyAutoAdvance,
@@ -48,7 +43,7 @@ export function AzkarSection({
   save,
 }: AzkarSectionProps) {
   const { confirm, alert } = useConfirmDialog()
-  const [category, setCategory] = useState<AzkarSettingsCategory>('content')
+  const [category, setCategory] = useState<AzkarSettingsCategory>('counter')
 
   return (
     <div>
@@ -74,52 +69,6 @@ export function AzkarSection({
           </button>
         ))}
       </div>
-
-      {category === 'content' && (
-        <Section title="المحتوى">
-          <Row
-            title="مصدر محتوى الأذكار"
-            description={
-              azkarSource === 'bundled'
-                ? 'استخدام المحتوى المدمج داخل التطبيق، دون تحميل إضافات من الإنترنت'
-                : 'استخدام المحتوى المدمج مع جلب إضافات وتحديثات من المصدر الخارجي عند توفر الشبكة'
-            }
-            stacked
-          >
-            <Choice
-              current={azkarSource}
-              onChange={(v) => {
-                setAzkarSource(v)
-                save('azkar_catalog_source', v)
-                window.dispatchEvent(new Event('azkar-settings-changed'))
-                window.dispatchEvent(new Event('azkar-catalog-refresh'))
-                localStorage.removeItem('azkar_catalog_v3')
-                localStorage.removeItem('azkar_catalog_v3_time')
-                localStorage.removeItem('azkar_catalog_v4')
-                localStorage.removeItem('azkar_catalog_v4_time')
-                // Reload after changing the source so the catalog is reconstructed
-                // from the selected source with no stale React/cache state.
-                window.setTimeout(() => window.location.reload(), 0)
-              }}
-              labels={{ bundled: 'المحتوى المدمج', merged: 'مدمج + خارجي' }}
-            />
-          </Row>
-          <Row title="إعادة تحميل الأذكار" last>
-            <button
-              onClick={() => {
-                localStorage.removeItem('azkar_catalog_v3')
-                localStorage.removeItem('azkar_catalog_v3_time')
-                localStorage.removeItem('azkar_catalog_v4')
-                localStorage.removeItem('azkar_catalog_v4_time')
-                window.dispatchEvent(new Event('azkar-catalog-refresh'))
-              }}
-              className="rounded-xl border px-3 py-2 text-[10px]"
-            >
-              مسح الكاش
-            </button>
-          </Row>
-        </Section>
-      )}
 
       {category === 'counter' && (
         <Section title="العداد والتقدم">

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { BookOpen, Search, Sparkles, X } from 'lucide-react'
 import {
   API_EDITIONS,
@@ -6,6 +7,7 @@ import {
   loadApiEdition,
   type ApiHadith,
 } from './hadithData'
+import { readSetting } from '../../settings'
 
 type Tab = 'curated' | 'nawawi' | 'qudsi' | 'dehlawi'
 
@@ -20,6 +22,19 @@ export function HadithView({ onBack }: { onBack: () => void }) {
   const [apiHadiths, setApiHadiths] = useState<ApiHadith[]>([])
   const [error, setError] = useState('')
   const [loadedEdition, setLoadedEdition] = useState<string>('')
+  const [font, setFont] = useState(() => readSetting('hadith_font', 'md'))
+  const [showNote, setShowNote] = useState(() => readSetting('azkar_hadith_show_note', '1') !== '0')
+
+  useEffect(() => {
+    const refresh = () => {
+      setFont(readSetting('hadith_font', 'md'))
+      setShowNote(readSetting('azkar_hadith_show_note', '1') !== '0')
+    }
+    window.addEventListener('azkar-settings-changed', refresh)
+    return () => window.removeEventListener('azkar-settings-changed', refresh)
+  }, [])
+
+  const fontClass = font === 'sm' ? 'text-[13px]' : font === 'lg' ? 'text-[19px]' : 'text-[16px]'
 
   const activeEdition = editionOf(tab)
 
@@ -75,7 +90,7 @@ export function HadithView({ onBack }: { onBack: () => void }) {
         >
           مختارات
         </button>
-        {API_EDITIONS.map((edition) => (
+        {!Capacitor.isNativePlatform() && API_EDITIONS.map((edition) => (
           <button
             key={edition.key}
             type="button"
@@ -113,8 +128,8 @@ export function HadithView({ onBack }: { onBack: () => void }) {
                 <span>حديث مختار</span>
                 <span className="hadith-source">{hadith.source}</span>
               </div>
-              <p className="hadith-text font-amiri">«{hadith.text}»</p>
-              <p className="mt-2 border-t border-azkar-hairline pt-2 text-[11px] leading-relaxed text-azkar-ink-soft">{hadith.note}</p>
+              <p className={"hadith-text font-amiri " + fontClass}>«{hadith.text}»</p>
+              {showNote && <p className="mt-2 border-t border-azkar-hairline pt-2 text-[11px] leading-relaxed text-azkar-ink-soft">{hadith.note}</p>}
             </article>
           ))}
           {!curated.length && (
@@ -167,7 +182,7 @@ export function HadithView({ onBack }: { onBack: () => void }) {
                 <span>حديث {hadith.hadithnumber}</span>
                 <span className="hadith-source">{activeEdition?.name}</span>
               </div>
-              <p className="hadith-text font-amiri">{hadith.text}</p>
+              <p className={"hadith-text font-amiri " + fontClass}>{hadith.text}</p>
             </article>
           ))}
           {apiState === 'ready' && !apiFiltered.length && (

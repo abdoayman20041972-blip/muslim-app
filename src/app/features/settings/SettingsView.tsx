@@ -15,6 +15,8 @@ import { clearAzkarProgressDay } from '../azkar/azkarProgress'
 import { AzkarStreakStats, TasbihStats } from './settingsStats'
 import { Row, Section, Choice } from './settingsPrimitives'
 import { AboutSection } from './sections/AboutSection'
+import { DeviceSection } from './sections/DeviceSection'
+import { HadithSection, ProphetsSection } from './sections/HadithProphetsSection'
 import { NotificationsSection } from './sections/NotificationsSection'
 import { AzkarSection } from './sections/AzkarSection'
 import { PrayerSection } from './sections/PrayerSection'
@@ -38,6 +40,9 @@ type Category =
   | 'tasbih'
   | 'prayer'
   | 'notifications'
+  | 'device'
+  | 'hadith'
+  | 'prophets'
   | 'motivation'
   | 'privacy'
   | 'about'
@@ -45,7 +50,6 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
   const { confirm, alert } = useConfirmDialog()
   const { fontSize, setFontSize, reciter, setReciter, layout, setLayout } = useQuranPreferences()
   const [category, setCategory] = useState<Category>('main')
-  const [azkarSource, setAzkarSource] = useState(readSetting('azkar_catalog_source', 'bundled'))
   const [uiSound, setUiSound] = useState(true),
     [tasbihSound, setTasbihSound] = useState(true),
     [vibration, setVibration] = useState(true),
@@ -82,7 +86,6 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
       readSetting(APP_SETTINGS_KEYS.khatmahTarget, '604'),
     )
   useEffect(() => {
-    setAzkarSource(readSetting('azkar_catalog_source', 'bundled'))
     setUiSound(readSetting(APP_SETTINGS_KEYS.uiSound, '1') !== '0')
     setTasbihSound(readSetting(APP_SETTINGS_KEYS.tasbihSound, '1') !== '0')
     setVibration(readSetting(APP_SETTINGS_KEYS.vibration, '1') !== '0')
@@ -216,7 +219,6 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
       APP_SETTINGS_KEYS.customTasbih,
       APP_SETTINGS_KEYS.azkarCounterEnabled,
       'azkar_theme_color',
-      'azkar_catalog_source',
       'azkar_custom_tasbih',
       'azkar_custom_tasbih_list',
     ]
@@ -244,7 +246,10 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
               ['azkar', 'الأذكار', 'الكاش وتفضيلات الأذكار'],
               ['tasbih', 'السبحة', 'الصوت والاهتزاز والعبارة المخصصة'],
               ['prayer', 'الصلاة', 'طريقة الحساب والعصر والتذكيرات'],
-              ['notifications', 'الإشعارات', 'الصلاة وآية اليوم وأذكار الصباح والمساء'],
+              ['notifications', 'الإشعارات', 'الأذان ومواقيت الصلاة والتنبيهات اليومية'],
+              ['device', 'الأذونات والجهاز', 'الإشعارات والموقع والحركة'],
+              ['hadith', 'الأحاديث', 'حجم الخط والملاحظات'],
+              ['prophets', 'قصص الأنبياء', 'حجم الخط وأسئلة التأمل'],
               ['motivation', 'التحفيز', 'إحصائيات السبحة والختمة'],
               ['privacy', 'الخصوصية والبيانات', 'النسخ الاحتياطي والبيانات'],
               ['about', 'حول مسلم', 'معلومات التطبيق والتواصل'],
@@ -266,7 +271,13 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
                         ? '◷'
                         : id === 'notifications'
                           ? '◌'
-                          : id === 'motivation'
+                          : id === 'device'
+                            ? '✆'
+                            : id === 'hadith'
+                              ? '✎'
+                              : id === 'prophets'
+                                ? '❖'
+                                : id === 'motivation'
                             ? '✦'
                             : id === 'privacy'
                               ? '◈'
@@ -298,6 +309,9 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
                 tasbih: 'السبحة',
                 prayer: 'الصلاة',
                 notifications: 'الإشعارات',
+                device: 'الأذونات والجهاز',
+                hadith: 'الأحاديث',
+                prophets: 'قصص الأنبياء',
                 motivation: 'التحفيز',
                 privacy: 'الخصوصية والبيانات',
                 about: 'حول مسلم',
@@ -336,8 +350,6 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
       )}
       {category === 'azkar' && (
         <AzkarSection
-          azkarSource={azkarSource}
-          setAzkarSource={setAzkarSource}
           azkarCounter={azkarCounter}
           setAzkarCounter={setAzkarCounter}
           journeyAutoAdvance={journeyAutoAdvance}
@@ -389,6 +401,9 @@ export function SettingsView({ appearance, onAppearance, onBack }: Props) {
           setAzkarEvening={setAzkarEvening}
         />
       )}
+      {category === 'device' && <DeviceSection />}
+      {category === 'hadith' && <HadithSection />}
+      {category === 'prophets' && <ProphetsSection />}
       {category === 'motivation' && (
         <MotivationSection
           khatmahPage={khatmahPage}

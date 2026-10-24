@@ -13,7 +13,7 @@ export type ZikrCategory = {
   items: ZikrItem[]
 }
 
-export const azkarCategories: ZikrCategory[] = [
+const baseCategories: ZikrCategory[] = [
   {
     id: 'morning',
     label: 'أذكار الصباح',
@@ -242,5 +242,20 @@ export const azkarCategories: ZikrCategory[] = [
     ],
   },
 ]
+
+// Offline enrichment from Hisn al-Muslim, baked in at build time.
+import { HISN_CATEGORIES, SLEEP_ADDITIONS, AFTER_PRAYER_ADDITIONS, GENERAL_ADDITIONS } from './azkar-hisn'
+
+const mergeById = (base: ZikrCategory[], id: string, additions: ZikrItem[]) =>
+  base.map((category) =>
+    category.id === id ? { ...category, items: [...category.items, ...additions] } : category,
+  )
+
+const enriched = mergeById(mergeById(mergeById(baseCategories, 'sleep', SLEEP_ADDITIONS), 'after-prayer', AFTER_PRAYER_ADDITIONS), 'general', GENERAL_ADDITIONS)
+
+const existingIds = new Set(enriched.map((category) => category.id))
+const fullOfflineCatalog = [...enriched, ...HISN_CATEGORIES.filter((category) => !existingIds.has(category.id))]
+
+export const azkarCategories: ZikrCategory[] = fullOfflineCatalog
 
 export const totalAzkarCount = azkarCategories.reduce((sum, c) => sum + c.items.length, 0)

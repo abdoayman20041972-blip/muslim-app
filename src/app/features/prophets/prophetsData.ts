@@ -15,7 +15,9 @@ export type ProphetStory = {
   question: string
 }
 
-export const PROPHET_STORIES: ProphetStory[] = [
+import { PROPHET_STORIES_EXTENDED } from './prophetsDataExtended'
+
+const BASE_STORIES: ProphetStory[] = [
   {
     id: 'nuh',
     name: 'نوح',
@@ -226,3 +228,5 @@ export const PROPHET_STORIES: ProphetStory[] = [
     question: 'ما صفةٌ من خُلقه ﷺ تحاول أن تتحلى بها في هذا الأسبوع؟',
   },
 ]
+
+export const PROPHET_STORIES: ProphetStory[] = [...BASE_STORIES, ...PROPHET_STORIES_EXTENDED]

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, ScrollText } from 'lucide-react'
 import { PROPHET_STORIES, type ProphetStory } from './prophetsData'
+import { readSetting } from '../../settings'
 
 export function ProphetsView({ onBack }: { onBack: () => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -39,7 +40,7 @@ function StoryList({ onSelect, onBack }: { onSelect: (id: string) => void; onBac
       </header>
 
       <div className="mb-1 flex items-center justify-between px-1">
-        <span className="font-amiri text-base font-bold text-azkar-teal-deep">اثنا عشر نبيًّا من أولي العزم</span>
+        <span className="font-amiri text-base font-bold text-azkar-teal-deep">{PROPHET_STORIES.length} نبيًّا من قصص القرآن</span>
         <span className="text-[9px] text-azkar-ink-faint">{PROPHET_STORIES.length} قصة</span>
       </div>
 
@@ -67,6 +68,17 @@ function StoryList({ onSelect, onBack }: { onSelect: (id: string) => void; onBac
 }
 
 function StoryReader({ story, index, onBack, onNext }: { story: ProphetStory; index: number; onBack: () => void; onNext: (() => void) | null }) {
+  const [font, setFont] = useState(() => readSetting('prophet_font', 'md'))
+  const [showQuestion, setShowQuestion] = useState(() => readSetting('azkar_prophet_show_question', '1') !== '0')
+  useEffect(() => {
+    const refresh = () => {
+      setFont(readSetting('prophet_font', 'md'))
+      setShowQuestion(readSetting('azkar_prophet_show_question', '1') !== '0')
+    }
+    window.addEventListener('azkar-settings-changed', refresh)
+    return () => window.removeEventListener('azkar-settings-changed', refresh)
+  }, [])
+  const fontClass = font === 'sm' ? 'text-[13px]' : font === 'lg' ? 'text-[18px]' : 'text-[15px]'
   return (
     <article>
       <header className="hadith-header">
@@ -87,7 +99,7 @@ function StoryReader({ story, index, onBack, onNext }: { story: ProphetStory; in
               <span className="ps-scene-num" aria-hidden="true">{i + 1}</span>
               <h2 className="font-amiri text-base font-bold text-azkar-teal-deep">{scene.heading}</h2>
             </div>
-            <p className="text-[13px] leading-loose text-azkar-ink">{scene.text}</p>
+            <p className={`leading-loose text-azkar-ink ${fontClass}`}>{scene.text}</p>
           </li>
         ))}
       </ol>
@@ -108,10 +120,12 @@ function StoryReader({ story, index, onBack, onNext }: { story: ProphetStory; in
         </ul>
       </section>
 
-      <div className="ps-question">
-        <h2>تأمّل</h2>
-        <p>{story.question}</p>
-      </div>
+      {showQuestion && (
+        <div className="ps-question">
+          <h2>تأمّل</h2>
+          <p>{story.question}</p>
+        </div>
+      )}
 
       {onNext && (
         <button type="button" onClick={onNext} className="u-pressable ps-next">

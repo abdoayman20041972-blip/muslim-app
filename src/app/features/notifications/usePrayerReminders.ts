@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { getNotificationPermission, showAppNotification } from './notifications'
 import { APP_SETTINGS_KEYS, readSetting } from '../../settings'
 import { dateKey, getTimings, parsePrayerTime, readPrayerCoords, reminderLeadText, type Timings } from '../prayer/prayerTimes'
@@ -8,6 +9,7 @@ function reminderLead(){return 5}
 export function usePrayerReminders(){
  const timers=useRef<number[]>([]),run=useRef(0)
  useEffect(()=>{let cancelled=false
+  if(Capacitor.isNativePlatform())return // native local notifications handle this
   const clear=()=>{timers.current.forEach(id=>window.clearTimeout(id));timers.current=[]}
   const schedule=async()=>{const id=++run.current;clear();if(readSetting(APP_SETTINGS_KEYS.reminders)!=='1'&&readSetting(APP_SETTINGS_KEYS.prayerTime)!=='1'||getNotificationPermission()!=='granted')return
    const c=readPrayerCoords();if(!c)return
